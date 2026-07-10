@@ -490,6 +490,27 @@ section{position:relative;}
   .roadmap-arrow{transform:rotate(90deg);}
   .footer-inner{flex-direction:column;}
   .chat-panel{width:calc(100vw - 32px);right:-10px;}
+  /* Hero Mobile Fix */
+.hero-orbit{
+    width:250px;
+    height:250px;
+    margin:40px auto;
+}
+
+.orbit-node{
+    display:none;
+}
+
+.ring-1,
+.ring-2{
+    display:none;
+}
+
+.orbit-hub{
+    width:120px;
+    height:120px;
+    font-size:14px;
+}
 }
 
 /* ---------- Footer Social ---------- */
