@@ -490,27 +490,43 @@ section{position:relative;}
   .roadmap-arrow{transform:rotate(90deg);}
   .footer-inner{flex-direction:column;}
   .chat-panel{width:calc(100vw - 32px);right:-10px;}
-  /* Hero Mobile Fix */
-.hero-orbit{
-    width:250px;
-    height:250px;
-    margin:40px auto;
-}
-
-.orbit-node{
+  /* Hero orbit — mobile: show every business category as a wrapped chip list
+     instead of hiding them */
+  .hero-orbit{
+    position:relative;
+    width:100%;
+    max-width:400px;
+    height:auto;
+    aspect-ratio:auto;
+    margin:36px auto 0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:20px;
+  }
+  .hero-orbit .ring-1,
+  .hero-orbit .ring-2,
+  .hero-orbit .orbit-lines{
     display:none;
-}
-
-.ring-1,
-.ring-2{
-    display:none;
-}
-
-.orbit-hub{
-    width:120px;
-    height:120px;
-    font-size:14px;
-}
+  }
+  .hero-orbit .orbit-hub{
+    position:static;
+    transform:none;
+    width:112px;
+    height:112px;
+    font-size:13px;
+  }
+  .hero-orbit-nodes{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+  }
+  .hero-orbit .orbit-node{
+    position:static;
+    transform:none;
+    opacity:1;
+  }
 }
 
 /* ---------- Footer Social ---------- */
