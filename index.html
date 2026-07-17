@@ -84,7 +84,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
       <a href="#why">Why Kivokora</a>
       <a href="#roadmap">Growth Path</a>
     </nav>
-    <a href="#audit" class="btn btn-small btn-primary">Book Free Audit</a>
+    <a href="#audit" class="btn btn-small btn-primary open-audit-form">Book Free Audit</a>
     <button class="nav-burger" id="navBurger" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
 </header>
@@ -98,7 +98,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
       <h1 class="reveal">Your business doesn't need more vendors.<br><span class="text-amber">It needs one growth engine.</span></h1>
       <p class="hero-sub reveal">Branding, websites, ads, SEO, social, automation and marketplaces — built and managed under one roof, so every part of your digital presence finally pulls in the same direction.</p>
       <div class="hero-ctas reveal">
-        <a href="#audit" class="btn btn-primary">Book Your Free Growth Audit</a>
+        <a href="#audit" class="btn btn-primary open-audit-form">Book Your Free Growth Audit</a>
         <a href="#process" class="btn btn-ghost">See How We Work</a>
       </div>
       <p class="hero-micro reveal">No sales pitch &nbsp;&bull;&nbsp; Actionable roadmap &nbsp;&bull;&nbsp; Completely free</p>
@@ -369,7 +369,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
   <div class="final-cta-bg" aria-hidden="true"></div>
   <h2 class="reveal">Ready to build your growth roadmap?</h2>
   <p class="reveal">Discover the fastest path to your next stage of business growth.</p>
-  <a href="#" class="btn btn-primary btn-large reveal" id="ctaButton">Book Your Free Strategy Session</a>
+  <a href="#" class="btn btn-primary btn-large reveal open-audit-form" id="ctaButton">Book Your Free Strategy Session</a>
   <p class="hero-micro reveal">No sales pitch &nbsp;&bull;&nbsp; Actionable roadmap &nbsp;&bull;&nbsp; Completely free</p>
 </section>
 
@@ -424,7 +424,7 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
 
         <a href="#process">Process</a>
 
-        <a href="#audit">Free Audit</a>
+        <a href="#audit" class="open-audit-form">Free Audit</a>
 
       </div>
 
@@ -483,6 +483,76 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
       <input type="text" id="chatInput" placeholder="Ask about services, pricing, process…" autocomplete="off">
       <button type="submit" aria-label="Send">➤</button>
     </form>
+  </div>
+</div>
+
+<!-- ================= AUDIT CONTACT FORM MODAL ================= -->
+<div class="audit-modal-overlay" id="auditModalOverlay">
+  <div class="audit-modal" role="dialog" aria-modal="true" aria-labelledby="auditModalTitle">
+
+    <button class="audit-modal-close" id="auditModalClose" aria-label="Close form">&times;</button>
+
+    <div class="audit-modal-header">
+      <h3 id="auditModalTitle">Book Your Free Growth Audit</h3>
+      <p>Tell us a bit about your business — we'll get back to you with an actionable roadmap.</p>
+    </div>
+
+    <form class="audit-form" id="auditForm">
+
+      <div class="audit-form-row">
+        <label for="auditName">Full Name <span>*</span></label>
+        <input type="text" id="auditName" name="name" required autocomplete="name">
+      </div>
+
+      <div class="audit-form-row">
+        <label for="auditCompany">Company Name</label>
+        <input type="text" id="auditCompany" name="company" autocomplete="organization">
+      </div>
+
+      <div class="audit-form-row audit-form-row-split">
+        <div>
+          <label for="auditPhone">Phone Number <span>*</span></label>
+          <input type="tel" id="auditPhone" name="phone" required autocomplete="tel">
+        </div>
+        <div>
+          <label for="auditEmail">Email <span>*</span></label>
+          <input type="email" id="auditEmail" name="email" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="audit-form-row">
+        <label for="auditBusinessType">Business Type <span>*</span></label>
+        <select id="auditBusinessType" name="business_type" required>
+          <option value="" disabled selected>Select your business type</option>
+          <option value="E-commerce">E-commerce</option>
+          <option value="Local Service Business">Local Service Business</option>
+          <option value="D2C Brand">D2C Brand</option>
+          <option value="B2B Company">B2B Company</option>
+          <option value="Startup">Startup</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="audit-form-row">
+        <label>Select Services You're Interested In</label>
+        <div class="audit-services-grid">
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Brand & Design"><span>Brand & Design</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Websites"><span>Websites</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Performance Marketing"><span>Performance Marketing</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Social Media"><span>Social Media</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Search & Visibility (SEO)"><span>Search & Visibility (SEO)</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Marketplace Growth"><span>Marketplace Growth</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Automation & CRM"><span>Automation & CRM</span></label>
+          <label class="audit-checkbox"><input type="checkbox" name="services" value="Analytics & Growth"><span>Analytics & Growth</span></label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary audit-form-submit" id="auditFormSubmit">Submit Request</button>
+
+      <p class="audit-form-status" id="auditFormStatus"></p>
+
+    </form>
+
   </div>
 </div>
 

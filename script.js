@@ -226,17 +226,79 @@ chatForm.addEventListener('submit', (e) => {
   handleUserMessage(chatInput.value);
 });
 
-/* ---------- CTA buttons open the chat ready to book ---------- */
-document.querySelectorAll('a[href="#audit"], #ctaButton').forEach(btn => {
+/* ============================================================
+   AUDIT CONTACT FORM MODAL
+   ============================================================ */
+const auditModalOverlay = document.getElementById('auditModalOverlay');
+const auditModalClose = document.getElementById('auditModalClose');
+const auditForm = document.getElementById('auditForm');
+const auditFormStatus = document.getElementById('auditFormStatus');
+const auditFormSubmit = document.getElementById('auditFormSubmit');
+
+// TODO: replace with your real Formspree endpoint (see setup notes)
+const AUDIT_FORM_ENDPOINT = 'https://formspree.io/f/xzdneqeg';
+
+function openAuditModal() {
+  auditModalOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAuditModal() {
+  auditModalOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.querySelectorAll('.open-audit-form').forEach(btn => {
   btn.addEventListener('click', (e) => {
-    if (btn.getAttribute('href') === '#') e.preventDefault();
-    // Let it scroll normally, then nudge the chatbot open with a booking prompt
-    setTimeout(() => {
-      if (!chatbot.classList.contains('open')) {
-        chatbot.classList.add('open');
-        initChat();
-      }
-      setTimeout(() => handleUserMessage('Book a free audit'), 400);
-    }, 500);
+    e.preventDefault();
+    openAuditModal();
   });
+});
+
+auditModalClose.addEventListener('click', closeAuditModal);
+
+auditModalOverlay.addEventListener('click', (e) => {
+  if (e.target === auditModalOverlay) closeAuditModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && auditModalOverlay.classList.contains('open')) closeAuditModal();
+});
+
+auditForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const services = Array.from(auditForm.querySelectorAll('input[name="services"]:checked')).map(cb => cb.value);
+  const formData = new FormData(auditForm);
+  formData.delete('services');
+  formData.append('services', services.length ? services.join(', ') : 'None selected');
+  formData.append('_subject', 'New Free Growth Audit Request — Kivokora');
+
+  auditFormSubmit.disabled = true;
+  auditFormSubmit.textContent = 'Sending…';
+  auditFormStatus.textContent = '';
+  auditFormStatus.className = 'audit-form-status';
+
+  try {
+    const response = await fetch(AUDIT_FORM_ENDPOINT, {
+      method: 'POST',
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (response.ok) {
+      auditFormStatus.textContent = "Thanks! We've received your request and will reach out shortly.";
+      auditFormStatus.classList.add('success');
+      auditForm.reset();
+      setTimeout(closeAuditModal, 2500);
+    } else {
+      throw new Error('Submission failed');
+    }
+  } catch (err) {
+    auditFormStatus.textContent = 'Something went wrong. Please try again or email us directly at contact@kivokora.com.';
+    auditFormStatus.classList.add('error');
+  } finally {
+    auditFormSubmit.disabled = false;
+    auditFormSubmit.textContent = 'Submit Request';
+  }
 });
