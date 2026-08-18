@@ -9,14 +9,14 @@ window.addEventListener('scroll', () => {
   nav.classList.toggle('scrolled', window.scrollY > 40);
 }, { passive: true });
 
-/* ---------- Mobile nav burger (simple inline menu toggle) ---------- */
+/* ---------- Mobile nav burger ---------- */
 const burger = document.getElementById('navBurger');
 burger.addEventListener('click', () => {
   const links = document.querySelector('.nav-links');
   const isOpen = links.style.display === 'flex';
   links.style.cssText = isOpen
     ? ''
-    : 'display:flex;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:#fff;padding:20px 24px;gap:16px;box-shadow:0 20px 40px -20px rgba(13,18,64,.25);border-radius:0 0 18px 18px;';
+    : 'display:flex;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:#0A0806;padding:20px 24px;gap:16px;box-shadow:0 20px 40px -20px rgba(0,0,0,.6);border-radius:0 0 18px 18px;border-top:1px solid rgba(255,255,255,.09);';
 });
 document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => {
   if (window.innerWidth <= 760) document.querySelector('.nav-links').style.display = '';
@@ -25,7 +25,7 @@ document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click
 /* ---------- Scroll reveal ---------- */
 const revealEls = document.querySelectorAll('.reveal');
 const io = new IntersectionObserver((entries) => {
-  entries.forEach((entry, i) => {
+  entries.forEach((entry) => {
     if (entry.isIntersecting) {
       const delay = (entry.target.dataset.groupIndex || 0) * 70;
       setTimeout(() => entry.target.classList.add('is-visible'), delay);
@@ -34,59 +34,49 @@ const io = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
 
-// Stagger elements that share a parent section for a nicer cascade
 document.querySelectorAll('section').forEach(section => {
   const items = section.querySelectorAll('.reveal');
   items.forEach((el, i) => { el.dataset.groupIndex = i % 6; });
 });
 revealEls.forEach(el => io.observe(el));
 
-/* ---------- Orbit layout generator ---------- */
-function layoutOrbit(container, nodeSelector, lineSelector, radiusPct) {
-  const nodes = container.querySelectorAll(nodeSelector);
-  const svg = container.querySelector(lineSelector);
-  const vb = svg.viewBox.baseVal;
-  const cx = vb.width / 2, cy = vb.height / 2;
-  const r = vb.width * radiusPct;
+/* ============================================================
+   3D TILT CARDS — mouse-tracked perspective rotation
+   ============================================================ */
+if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  document.querySelectorAll('.tilt-card').forEach(card => {
+    const maxTilt = 8; // degrees
 
-  nodes.forEach((node, i) => {
-    const angle = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
-    const xPct = 50 + Math.cos(angle) * radiusPct * 100;
-    const yPct = 50 + Math.sin(angle) * radiusPct * 100;
-    node.style.left = xPct + '%';
-    node.style.top = yPct + '%';
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const rotateY = ((x - cx) / cx) * maxTilt;
+      const rotateX = -((y - cy) / cy) * maxTilt;
+      const baseRot = card.style.getPropertyValue('--rot') || '0deg';
+      card.style.transform = `rotate(${baseRot}) perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-6px) scale(1.02)`;
+    });
 
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', cx);
-    line.setAttribute('y1', cy);
-    line.setAttribute('x2', cx + Math.cos(angle) * r);
-    line.setAttribute('y2', cy + Math.sin(angle) * r);
-    svg.appendChild(line);
-
-    // staggered reveal
-    setTimeout(() => node.classList.add('placed'), 200 + i * 90);
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+    });
   });
 }
 
-const heroOrbit = document.getElementById('heroOrbit');
-if (heroOrbit && window.innerWidth > 760) {
-  layoutOrbit(heroOrbit, '.orbit-node', '.orbit-lines', 0.42);
-}
-
-const servicesOrbit = document.getElementById('servicesOrbit');
-if (servicesOrbit && window.innerWidth > 760) {
-  layoutOrbit(servicesOrbit, '.service-node', '.services-lines', 0.4);
-}
-
-/* ---------- Timeline progress fill ---------- */
-const timelineFill = document.getElementById('timelineFill');
-const timelineSection = document.querySelector('.timeline');
-if (timelineFill && timelineSection) {
-  window.addEventListener('scroll', () => {
-    const rect = timelineSection.getBoundingClientRect();
-    const vh = window.innerHeight;
-    const progress = Math.min(1, Math.max(0, (vh - rect.top) / (rect.height + vh * 0.4)));
-    timelineFill.style.width = (progress * 100) + '%';
+/* ---------- Hero bubble parallax ---------- */
+const parallaxEls = document.querySelectorAll('[data-parallax]');
+if (parallaxEls.length && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  window.addEventListener('mousemove', (e) => {
+    const xRatio = (e.clientX / window.innerWidth) - 0.5;
+    const yRatio = (e.clientY / window.innerHeight) - 0.5;
+    parallaxEls.forEach(el => {
+      const strength = parseFloat(el.dataset.parallax) || 0.3;
+      const moveX = xRatio * 40 * strength;
+      const moveY = yRatio * 40 * strength;
+      el.style.transform = `translate(${moveX}px, ${moveY}px)`;
+    });
   }, { passive: true });
 }
 
@@ -95,7 +85,6 @@ if (timelineFill && timelineSection) {
    ============================================================ */
 const chatbot = document.getElementById('chatbot');
 const chatToggle = document.getElementById('chatToggle');
-const chatPanel = document.getElementById('chatPanel');
 const chatMessages = document.getElementById('chatMessages');
 const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
@@ -111,27 +100,27 @@ const QUICK_REPLIES = [
 const KB = [
   {
     keys: ['service', 'offer', 'what do you do', 'brand', 'website', 'seo', 'ads', 'social', 'automation', 'marketplace'],
-    reply: "Kivokora runs your entire digital business under one roof: Brand & Design, Websites, Performance Marketing, Social Media, Search & Visibility (SEO), Marketplace Growth, Automation & CRM, and Analytics & Growth. One team handles all of it, so nothing gets lost between vendors."
+    reply: "Kivokora runs your entire digital business under one roof: Performance Marketing, Social Media, Content Marketing, Brand & Design, Search & SEO, and Automation & CRM. One team handles all of it, so nothing gets lost between vendors."
   },
   {
     keys: ['process', 'how does it work', 'steps', 'work with you', 'onboarding'],
-    reply: "We follow 8 connected steps: Discover → Audit → Strategy → Build → Launch → Grow → Optimize → Scale. You can see the full breakdown in the 'Process' section above — every stage feeds the next, so nothing is built in isolation."
+    reply: "We follow a 5-step process: Discover → Plan → Develop → Design → Deliver. You can see the full breakdown in the 'Process' section above — every stage feeds the next, so nothing is built in isolation."
   },
   {
     keys: ['price', 'pricing', 'cost', 'how much', 'budget', 'fee'],
-    reply: "Pricing depends on which pillars your business needs right now — most clients start with a Foundation package (brand + website + one growth channel) and expand from there. The best next step is a free Growth Audit, where we scope this out for your business specifically and give you real numbers."
+    reply: "Pricing depends on which services your business needs right now. The best next step is a free Growth Audit, where we scope this out for your business specifically and give you real numbers."
   },
   {
-    keys: ['book', 'audit', 'call', 'meeting', 'talk to', 'contact', 'strategy session', 'consult'],
-    reply: "I'd love to set that up. Tap 'Book Your Free Growth Audit' at the top of the page (or the button in the final section) — it's a free, no-pressure session where we map out an actionable roadmap for your business."
+    keys: ['book', 'audit', 'call', 'meeting', 'talk to', 'contact', 'strategy session', 'consult', 'schedule'],
+    reply: "I'd love to set that up. Tap 'Book Free Audit' at the top of the page — it's a free, no-pressure session where we map out an actionable roadmap for your business."
   },
   {
     keys: ['different', 'why kivokora', 'why you', 'vs agency', 'traditional agency', 'better than'],
-    reply: "Most businesses end up hiring 4-5 different vendors — a logo agency, a website team, an ads freelancer, an SEO agency — all with different goals and zero accountability. Kivokora replaces that with one team, one strategy, one dashboard, and one goal: your business growth."
+    reply: "Most businesses end up hiring 4-5 different vendors — a logo agency, a website team, an ads freelancer, an SEO agency — all with different goals and zero accountability. Kivokora replaces that with one team, one strategy, and one goal: your business growth."
   },
   {
     keys: ['time', 'how long', 'timeline', 'duration'],
-    reply: "It varies by scope, but most businesses see their Foundation (brand + website + first growth channel) live within 3-6 weeks, then move into ongoing Growth and Optimization. We'll give you a concrete timeline during your free audit."
+    reply: "It varies by scope — we'll give you a concrete timeline during your free audit based on exactly what your business needs."
   },
   {
     keys: ['industries', 'niche', 'type of business', 'who do you work with'],
@@ -235,7 +224,6 @@ const auditForm = document.getElementById('auditForm');
 const auditFormStatus = document.getElementById('auditFormStatus');
 const auditFormSubmit = document.getElementById('auditFormSubmit');
 
-// TODO: replace with your real Formspree endpoint (see setup notes)
 const AUDIT_FORM_ENDPOINT = 'https://formspree.io/f/xzdneqeg';
 
 function openAuditModal() {
