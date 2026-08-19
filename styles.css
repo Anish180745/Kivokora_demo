@@ -225,9 +225,9 @@ section{position:relative;}
   box-shadow:0 25px 50px -15px rgba(0,0,0,0.55);
   min-height:230px;
 }
-.tag-card-final{background:linear-gradient(160deg,#fff,#e8e2d8);}
-.tag-card-final .tag-num,.tag-card-final h4{color:var(--flame-600);}
-.tag-card-final p{color:var(--ink);}
+.tag-card-final{background:linear-gradient(160deg,var(--flame-500),var(--flame-600));}
+.tag-card-final .tag-num,.tag-card-final h4{color:inherit;}
+.tag-card-final p{color:rgba(255,255,255,0.9);}
 .tag-hole{
   position:absolute;top:14px;left:50%;transform:translateX(-50%);
   width:14px;height:14px;border-radius:50%;background:var(--black);
