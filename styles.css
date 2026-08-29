@@ -570,3 +570,169 @@ section{position:relative;}
 @media (max-width:480px){
   .tag-row{grid-template-columns:1fr;}
 }
+
+/* ============================================================
+   SUBPAGE HERO (services / process / why / work)
+   ============================================================ */
+.page-hero{
+  min-height:60vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:150px 5vw 70px;background:var(--black);overflow:hidden;position:relative;
+}
+.page-hero-glow{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 60% at 50% 20%, rgba(255,91,31,0.16), transparent 60%);
+}
+.page-hero-inner{position:relative;z-index:2;max-width:820px;margin:0 auto;}
+.page-hero-inner h1{
+  font-family:var(--font-display);font-weight:400;font-size:clamp(32px,5.4vw,58px);
+  color:#fff;margin:14px 0 22px;text-transform:uppercase;line-height:1.08;
+}
+.page-hero-sub{font-size:16.5px;color:var(--ink-soft);max-width:620px;margin:0 auto;}
+.breadcrumb{
+  font-size:12.5px;color:var(--ink-faint);margin-bottom:18px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.breadcrumb a{color:var(--ink-faint);transition:color .3s;}
+.breadcrumb a:hover{color:var(--flame-400);}
+.breadcrumb i{font-size:9px;}
+.breadcrumb span{color:var(--flame-400);}
+
+/* ============================================================
+   STICKY SUB-NAV (services page jump links)
+   ============================================================ */
+.subnav{
+  position:sticky;top:0;z-index:150;background:rgba(5,4,3,0.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);overflow-x:auto;
+}
+.subnav-inner{
+  max-width:1320px;margin:0 auto;display:flex;gap:8px;padding:14px 5vw;white-space:nowrap;
+}
+.subnav-inner a{
+  font-size:13px;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:100px;
+  transition:background .25s, color .25s;flex:none;
+}
+@media (hover:hover) and (pointer:fine){
+  .subnav-inner a:hover{background:rgba(255,91,31,0.12);color:var(--flame-400);}
+}
+
+/* ============================================================
+   SERVICE DETAIL BLOCKS (alternating image/content)
+   ============================================================ */
+.service-detail-list{padding:80px 5vw 40px;max-width:1280px;margin:0 auto;}
+.service-detail{
+  display:grid;grid-template-columns:0.85fr 1.15fr;gap:60px;align-items:center;
+  padding:70px 0;border-bottom:1px solid var(--line);scroll-margin-top:90px;
+}
+.service-detail:last-child{border-bottom:none;}
+.service-detail-rev{grid-template-columns:1.15fr 0.85fr;}
+.service-detail-rev .service-detail-visual{order:2;}
+.service-detail-rev .service-detail-content{order:1;}
+.service-detail-image-card{
+  aspect-ratio:1/1;border-radius:var(--radius-l);
+  background:linear-gradient(160deg,var(--charcoal),var(--black-soft));
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,0.6);position:relative;overflow:hidden;
+}
+.service-detail-image-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 20%, rgba(255,91,31,0.18), transparent 60%);
+}
+.service-detail-icon{font-size:90px;color:var(--flame-400);position:relative;z-index:1;}
+.service-detail-content h2{
+  font-family:var(--font-display);font-weight:400;font-size:clamp(26px,3.4vw,40px);
+  color:#fff;margin:10px 0 18px;text-transform:uppercase;
+}
+.service-detail-content p{font-size:15px;line-height:1.75;margin-bottom:24px;}
+.feature-list{margin-bottom:28px;}
+.feature-list li{
+  display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--ink-soft);
+  padding:8px 0;
+}
+.feature-list li i{color:var(--flame-400);font-size:13px;margin-top:3px;flex:none;}
+.service-detail-cta{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+.wa-link{
+  display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink-soft);
+  transition:color .3s;
+}
+.wa-link i{color:#25D366;font-size:16px;}
+@media (hover:hover) and (pointer:fine){.wa-link:hover{color:#fff;}}
+
+/* ============================================================
+   PROCESS: duration pill + deliverable box
+   ============================================================ */
+.duration-pill{
+  display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--flame-400);
+  background:rgba(255,91,31,0.1);border:1px solid var(--line-strong);padding:7px 16px;border-radius:100px;
+  margin:16px 0 20px;
+}
+.deliverable-box{
+  display:flex;align-items:flex-start;gap:16px;background:var(--charcoal);border:1px solid var(--line);
+  border-radius:var(--radius-m);padding:22px 24px;margin-top:6px;
+}
+.deliverable-box i{font-size:22px;color:var(--flame-400);margin-top:2px;flex:none;}
+.deliverable-box strong{display:block;color:#fff;font-size:14.5px;margin-bottom:4px;}
+.deliverable-box span{font-size:13px;color:var(--ink-faint);line-height:1.55;}
+
+/* Process tag-card thumbnail icon (replaces missing images) */
+.tag-card-thumb{
+  display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,0.16);
+  margin-bottom:10px;
+}
+.tag-card-thumb i{font-size:20px;color:#fff;}
+.tag-card-final .tag-card-thumb{background:rgba(255,145,80,0.15);}
+.tag-card-final .tag-card-thumb i{color:var(--flame-500);}
+
+/* ============================================================
+   FAQ Accordion
+   ============================================================ */
+.faq{padding:100px 5vw 110px;background:var(--black-soft);}
+.faq-inner{max-width:820px;margin:0 auto;}
+.faq h2{text-align:center;font-size:clamp(28px,4vw,44px);color:#fff;margin:14px auto 50px;text-transform:uppercase;}
+.faq-item{
+  background:var(--charcoal);border:1px solid var(--line);border-radius:var(--radius-m);
+  padding:22px 26px;margin-bottom:14px;
+}
+.faq-item summary{
+  font-size:15.5px;font-weight:600;color:#fff;cursor:pointer;list-style:none;
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+}
+.faq-item summary::-webkit-details-marker{display:none;}
+.faq-item summary::after{
+  content:'+';font-size:22px;color:var(--flame-400);flex:none;transition:transform .3s var(--ease);font-weight:400;
+}
+.faq-item[open] summary::after{transform:rotate(45deg);}
+.faq-item p{font-size:14px;margin-top:16px;line-height:1.7;}
+
+/* ============================================================
+   WHY page: comparison table
+   ============================================================ */
+.compare{padding:100px 5vw;}
+.compare-inner{max-width:1080px;margin:0 auto;}
+.compare h2{text-align:center;font-size:clamp(28px,4vw,46px);color:#fff;margin:14px auto 60px;text-transform:uppercase;}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.compare-col{border-radius:var(--radius-l);padding:38px 32px;}
+.compare-col-bad{background:var(--charcoal);border:1px solid var(--line);}
+.compare-col-good{background:linear-gradient(160deg,var(--flame-500),var(--flame-600));box-shadow:var(--shadow-flame);}
+.compare-col-label{
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:10px;
+}
+.compare-col-good .compare-col-label{color:rgba(255,255,255,0.75);}
+.compare-col h3{font-size:20px;color:#fff;margin-bottom:24px;font-family:var(--font-body);font-weight:700;text-transform:none;}
+.compare-col ul li{
+  display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--ink-soft);padding:9px 0;
+  border-bottom:1px dashed var(--line);
+}
+.compare-col ul li:last-child{border-bottom:none;}
+.compare-col-good ul li{color:rgba(255,255,255,0.92);border-bottom-color:rgba(255,255,255,0.16);}
+.compare-col-bad ul li i{color:var(--flame-400);font-size:13px;margin-top:3px;flex:none;}
+.compare-col-good ul li i{color:#fff;font-size:13px;margin-top:3px;flex:none;}
+
+@media (max-width:900px){
+  .service-detail,.service-detail-rev{grid-template-columns:1fr;gap:32px;}
+  .service-detail-rev .service-detail-visual,.service-detail-rev .service-detail-content{order:0;}
+  .compare-grid{grid-template-columns:1fr;}
+  .service-detail-image-card{max-width:340px;margin:0 auto;}
+}
