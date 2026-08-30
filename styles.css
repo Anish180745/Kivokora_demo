@@ -629,14 +629,19 @@ section{position:relative;}
 .service-detail-rev .service-detail-visual{order:2;}
 .service-detail-rev .service-detail-content{order:1;}
 .service-detail-image-card{
-  aspect-ratio:1/1;border-radius:var(--radius-l);
+  aspect-ratio:4/3;border-radius:var(--radius-l);
   background:linear-gradient(160deg,var(--charcoal),var(--black-soft));
   border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
   box-shadow:0 30px 70px -20px rgba(0,0,0,0.6);position:relative;overflow:hidden;
+  padding:14px;
 }
 .service-detail-image-card::before{
   content:'';position:absolute;inset:0;
   background:radial-gradient(circle at 30% 20%, rgba(255,91,31,0.18), transparent 60%);
+  z-index:1;pointer-events:none;
+}
+.service-detail-image-card img{
+  width:100%;height:100%;object-fit:contain;position:relative;z-index:1;border-radius:calc(var(--radius-l) - 10px);
 }
 .service-detail-icon{font-size:90px;color:var(--flame-400);position:relative;z-index:1;}
 .service-detail-content h2{
