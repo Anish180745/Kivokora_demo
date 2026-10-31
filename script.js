@@ -1,69 +1,63 @@
 /* ============================================================
-   KIVOKORA — interactions
+   KIVOKORA — interactions (error-safe)
    ============================================================ */
-document.getElementById('year').textContent = new Date().getFullYear();
+
+/* ---------- Current year ---------- */
+const yearEl = document.getElementById('year');
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 /* ---------- Nav scroll state ---------- */
 const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => {
-  nav.classList.toggle('scrolled', window.scrollY > 40);
-}, { passive: true });
+if (nav) {
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+}
 
 /* ---------- Mobile nav burger ---------- */
 const burger = document.getElementById('navBurger');
-burger.addEventListener('click', () => {
-  const links = document.querySelector('.nav-links');
-  const isOpen = links.style.display === 'flex';
-  links.style.cssText = isOpen
-    ? ''
-    : 'display:flex;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:#0A0806;padding:20px 24px;gap:16px;box-shadow:0 20px 40px -20px rgba(0,0,0,.6);border-radius:0 0 18px 18px;border-top:1px solid rgba(255,255,255,.09);';
+if (burger) {
+  burger.addEventListener('click', () => {
+    const links = document.querySelector('.nav-links');
+    if (!links) return;
+    const isOpen = links.style.display === 'flex';
+    links.style.cssText = isOpen
+      ? ''
+      : 'display:flex;position:absolute;top:100%;left:0;right:0;flex-direction:column;background:rgba(10,8,6,.94);backdrop-filter:blur(18px);padding:20px 24px;gap:16px;box-shadow:0 20px 40px -20px rgba(0,0,0,.6);border-radius:0 0 18px 18px;border-top:1px solid rgba(255,255,255,.09);';
+  });
+}
+
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    const links = document.querySelector('.nav-links');
+    if (links && window.innerWidth <= 760) links.style.display = '';
+  });
 });
-document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => {
-  if (window.innerWidth <= 760) document.querySelector('.nav-links').style.display = '';
-}));
 
 /* ---------- Scroll reveal ---------- */
 const revealEls = document.querySelectorAll('.reveal');
-const io = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      const delay = (entry.target.dataset.groupIndex || 0) * 70;
-      setTimeout(() => entry.target.classList.add('is-visible'), delay);
-      io.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
-
-document.querySelectorAll('section').forEach(section => {
-  const items = section.querySelectorAll('.reveal');
-  items.forEach((el, i) => { el.dataset.groupIndex = i % 6; });
-});
-revealEls.forEach(el => io.observe(el));
-
-/* ============================================================
-   3D TILT CARDS — mouse-tracked perspective rotation
-   ============================================================ */
-if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  document.querySelectorAll('.tilt-card').forEach(card => {
-    const maxTilt = 8; // degrees
-
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
-      const rotateY = ((x - cx) / cx) * maxTilt;
-      const rotateX = -((y - cy) / cy) * maxTilt;
-      const baseRot = card.style.getPropertyValue('--rot') || '0deg';
-      card.style.transform = `rotate(${baseRot}) perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-6px) scale(1.02)`;
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const delay = (entry.target.dataset.groupIndex || 0) * 70;
+        setTimeout(() => entry.target.classList.add('is-visible'), delay);
+        io.unobserve(entry.target);
+      }
     });
+  }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
 
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = '';
+  document.querySelectorAll('section').forEach(section => {
+    section.querySelectorAll('.reveal').forEach((el, i) => {
+      el.dataset.groupIndex = i % 6;
     });
   });
+  revealEls.forEach(el => io.observe(el));
+} else {
+  revealEls.forEach(el => el.classList.add('is-visible'));
 }
+
+/* Card hover is handled entirely by CSS in V6 for maximum reliability. */
 
 /* ---------- Hero bubble parallax ---------- */
 const parallaxEls = document.querySelectorAll('[data-parallax]');
@@ -73,15 +67,13 @@ if (parallaxEls.length && window.matchMedia('(hover: hover) and (pointer: fine)'
     const yRatio = (e.clientY / window.innerHeight) - 0.5;
     parallaxEls.forEach(el => {
       const strength = parseFloat(el.dataset.parallax) || 0.3;
-      const moveX = xRatio * 40 * strength;
-      const moveY = yRatio * 40 * strength;
-      el.style.transform = `translate(${moveX}px, ${moveY}px)`;
+      el.style.transform = `translate(${xRatio * 40 * strength}px, ${yRatio * 40 * strength}px)`;
     });
   }, { passive: true });
 }
 
 /* ============================================================
-   CHATBOT — "Kiva", rule-based assistant
+   CHATBOT — Kiva (safe on every page)
    ============================================================ */
 const chatbot = document.getElementById('chatbot');
 const chatToggle = document.getElementById('chatToggle');
@@ -100,58 +92,43 @@ const QUICK_REPLIES = [
 const KB = [
   {
     keys: ['service', 'offer', 'what do you do', 'brand', 'website', 'seo', 'ads', 'social', 'automation', 'marketplace'],
-    reply: "Kivokora runs your entire digital business under one roof: Performance Marketing, Social Media, Content Marketing, Brand & Design, Search & SEO, and Automation & CRM. One team handles all of it, so nothing gets lost between vendors."
+    reply: "Kivokora brings Performance Marketing, Social Media, Websites, Content, Brand & Design, SEO and Automation under one connected growth team."
   },
   {
     keys: ['process', 'how does it work', 'steps', 'work with you', 'onboarding'],
-    reply: "We follow a 5-step process: Discover → Plan → Develop → Design → Deliver. You can see the full breakdown in the 'Process' section above — every stage feeds the next, so nothing is built in isolation."
+    reply: "We follow Discover → Plan → Develop → Design → Deliver, with clear milestones and ongoing optimization."
   },
   {
-    keys: ['price', 'pricing', 'cost', 'how much', 'budget', 'fee'],
-    reply: "Pricing depends on which services your business needs right now. The best next step is a free Growth Audit, where we scope this out for your business specifically and give you real numbers."
+    keys: ['price', 'pricing', 'cost', 'how much', 'budget', 'fee', 'package'],
+    reply: "Performance Marketing starts at ₹5,999/month, Social Media Marketing at ₹5,999/month, Website Designing at ₹6,999/project, and Growth 360 at ₹25,000/month."
+  },
+  {
+    keys: ['25000', '25k', 'growth 360', 'all in one', 'complete package'],
+    reply: "Growth 360 is our ₹25,000/month all-in-one package covering ads, social media, creatives, reels/video editing, shoot support, SEO captions, website support, reporting and growth strategy."
   },
   {
     keys: ['book', 'audit', 'call', 'meeting', 'talk to', 'contact', 'strategy session', 'consult', 'schedule'],
-    reply: "I'd love to set that up. Tap 'Book Free Audit' at the top of the page — it's a free, no-pressure session where we map out an actionable roadmap for your business."
-  },
-  {
-    keys: ['different', 'why kivokora', 'why you', 'vs agency', 'traditional agency', 'better than'],
-    reply: "Most businesses end up hiring 4-5 different vendors — a logo agency, a website team, an ads freelancer, an SEO agency — all with different goals and zero accountability. Kivokora replaces that with one team, one strategy, and one goal: your business growth."
-  },
-  {
-    keys: ['time', 'how long', 'timeline', 'duration'],
-    reply: "It varies by scope — we'll give you a concrete timeline during your free audit based on exactly what your business needs."
-  },
-  {
-    keys: ['industries', 'niche', 'type of business', 'who do you work with'],
-    reply: "We work with growing businesses across e-commerce, local services, D2C brands, and B2B companies — basically anyone who's tired of managing five different vendors instead of one growth partner."
-  },
-  {
-    keys: ['human', 'real person', 'talk to someone', 'agent'],
-    reply: "Happy to connect you with the team — the fastest way is booking a free Growth Audit using the button above. A real strategist will walk through your business with you."
+    reply: "Tap any 'Book Free Audit' button and share your details. We'll review your business and recommend the leanest growth setup for your goal."
   },
   {
     keys: ['hello', 'hi', 'hey', 'yo'],
-    reply: "Hey! I'm Kiva, Kivokora's assistant. Ask me about our services, our process, pricing, or how to book a free growth audit."
-  },
-  {
-    keys: ['thank', 'thanks', 'great', 'awesome', 'cool'],
-    reply: "Anytime! If you want a tailored growth plan, booking your free audit is the best next step 🚀"
+    reply: "Hey! 👋 I'm Kiva. Ask me about services, pricing, Growth 360 or your free growth audit."
   }
 ];
 
-const FALLBACK = "Good question — I don't have a scripted answer for that yet, but the team can help directly. Try booking a free Growth Audit, or ask me about our services, process, pricing, or what makes Kivokora different.";
+const FALLBACK = "I can help with Kivokora services, pricing, Growth 360, process or booking a free Growth Audit.";
 
 function addMessage(text, sender) {
+  if (!chatMessages) return;
   const el = document.createElement('div');
   el.className = 'msg ' + (sender === 'user' ? 'msg-user' : 'msg-bot');
   el.textContent = text;
   chatMessages.appendChild(el);
   chatMessages.scrollTop = chatMessages.scrollHeight;
-  return el;
 }
 
 function showTyping() {
+  if (!chatMessages) return;
   const el = document.createElement('div');
   el.className = 'msg-typing';
   el.id = 'typingIndicator';
@@ -159,23 +136,23 @@ function showTyping() {
   chatMessages.appendChild(el);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
 function hideTyping() {
-  const el = document.getElementById('typingIndicator');
-  if (el) el.remove();
+  document.getElementById('typingIndicator')?.remove();
 }
 
 function botReply(userText) {
   const t = userText.toLowerCase();
-  let match = KB.find(entry => entry.keys.some(k => t.includes(k)));
-  const reply = match ? match.reply : FALLBACK;
+  const match = KB.find(entry => entry.keys.some(k => t.includes(k)));
   showTyping();
   setTimeout(() => {
     hideTyping();
-    addMessage(reply, 'bot');
-  }, 550 + Math.random() * 400);
+    addMessage(match ? match.reply : FALLBACK, 'bot');
+  }, 550 + Math.random() * 350);
 }
 
 function renderQuickReplies() {
+  if (!chatQuick) return;
   chatQuick.innerHTML = '';
   QUICK_REPLIES.forEach(q => {
     const chip = document.createElement('button');
@@ -188,9 +165,9 @@ function renderQuickReplies() {
 }
 
 function handleUserMessage(text) {
-  if (!text.trim()) return;
+  if (!text || !text.trim()) return;
   addMessage(text, 'user');
-  chatInput.value = '';
+  if (chatInput) chatInput.value = '';
   botReply(text);
 }
 
@@ -198,95 +175,174 @@ let chatInitialized = false;
 function initChat() {
   if (chatInitialized) return;
   chatInitialized = true;
-  addMessage("Hi, I'm Kiva 👋 — Kivokora's assistant. Ask me about our services, process, pricing, or how to book your free growth audit.", 'bot');
+  addMessage("Hi, I'm Kiva 👋 — ask me about services, pricing, Growth 360 or your free audit.", 'bot');
   renderQuickReplies();
 }
 
-chatToggle.addEventListener('click', () => {
-  chatbot.classList.toggle('open');
-  if (chatbot.classList.contains('open')) {
-    initChat();
-    setTimeout(() => chatInput.focus(), 300);
-  }
-});
+if (chatToggle && chatbot) {
+  chatToggle.addEventListener('click', () => {
+    chatbot.classList.toggle('open');
+    if (chatbot.classList.contains('open')) {
+      initChat();
+      setTimeout(() => chatInput?.focus(), 300);
+    }
+  });
+}
 
-chatForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  handleUserMessage(chatInput.value);
-});
+if (chatForm) {
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleUserMessage(chatInput?.value || '');
+  });
+}
 
 /* ============================================================
-   AUDIT CONTACT FORM MODAL
+   AUDIT CONTACT FORM MODAL — safe and reusable
    ============================================================ */
 const auditModalOverlay = document.getElementById('auditModalOverlay');
 const auditModalClose = document.getElementById('auditModalClose');
 const auditForm = document.getElementById('auditForm');
 const auditFormStatus = document.getElementById('auditFormStatus');
 const auditFormSubmit = document.getElementById('auditFormSubmit');
-
 const AUDIT_FORM_ENDPOINT = 'https://formspree.io/f/xzdneqeg';
 
 function openAuditModal() {
+  if (!auditModalOverlay) return;
+  if (location.hash === '#auditModalOverlay') history.replaceState(null, '', location.pathname + location.search);
   auditModalOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+  document.querySelector('.audit-smart-popup')?.classList.remove('show');
+  setTimeout(() => document.getElementById('auditName')?.focus(), 250);
 }
 
 function closeAuditModal() {
+  if (!auditModalOverlay) return;
   auditModalOverlay.classList.remove('open');
   document.body.style.overflow = '';
+  if (location.hash === '#auditModalOverlay') history.replaceState(null, '', location.pathname + location.search);
 }
 
-document.querySelectorAll('.open-audit-form').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    openAuditModal();
+window.openKivokoraAudit = openAuditModal;
+window.closeKivokoraAudit = closeAuditModal;
+
+// V6 direct delegated audit CTA handler — works for current and future buttons.
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest?.('.open-audit-form, a[href="#auditModalOverlay"], [data-open-audit]');
+  if (!trigger || !auditModalOverlay) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openAuditModal();
+}, true);
+
+// Native hash remains an independent fallback if JS is disabled or interrupted.
+if (location.hash === '#auditModalOverlay') openAuditModal();
+window.addEventListener('hashchange', () => {
+  if (location.hash === '#auditModalOverlay') openAuditModal();
+});
+
+if (auditModalClose) auditModalClose.addEventListener('click', closeAuditModal);
+if (auditModalOverlay) {
+  auditModalOverlay.addEventListener('click', (e) => {
+    if (e.target === auditModalOverlay) closeAuditModal();
   });
-});
-
-auditModalClose.addEventListener('click', closeAuditModal);
-
-auditModalOverlay.addEventListener('click', (e) => {
-  if (e.target === auditModalOverlay) closeAuditModal();
-});
+}
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && auditModalOverlay.classList.contains('open')) closeAuditModal();
+  if (e.key === 'Escape' && auditModalOverlay?.classList.contains('open')) closeAuditModal();
 });
 
-auditForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
+if (auditForm) {
+  auditForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  const services = Array.from(auditForm.querySelectorAll('input[name="services"]:checked')).map(cb => cb.value);
-  const formData = new FormData(auditForm);
-  formData.delete('services');
-  formData.append('services', services.length ? services.join(', ') : 'None selected');
-  formData.append('_subject', 'New Free Growth Audit Request — Kivokora');
+    const services = Array.from(auditForm.querySelectorAll('input[name="services"]:checked')).map(cb => cb.value);
+    const formData = new FormData(auditForm);
+    formData.delete('services');
+    formData.append('services', services.length ? services.join(', ') : 'None selected');
+    formData.append('_subject', 'New Free Growth Audit Request — Kivokora');
 
-  auditFormSubmit.disabled = true;
-  auditFormSubmit.textContent = 'Sending…';
-  auditFormStatus.textContent = '';
-  auditFormStatus.className = 'audit-form-status';
-
-  try {
-    const response = await fetch(AUDIT_FORM_ENDPOINT, {
-      method: 'POST',
-      body: formData,
-      headers: { 'Accept': 'application/json' }
-    });
-
-    if (response.ok) {
-      auditFormStatus.textContent = "Thanks! We've received your request and will reach out shortly.";
-      auditFormStatus.classList.add('success');
-      auditForm.reset();
-      setTimeout(closeAuditModal, 2500);
-    } else {
-      throw new Error('Submission failed');
+    if (auditFormSubmit) {
+      auditFormSubmit.disabled = true;
+      auditFormSubmit.textContent = 'Sending…';
     }
-  } catch (err) {
-    auditFormStatus.textContent = 'Something went wrong. Please try again or email us directly at contact@kivokora.com.';
-    auditFormStatus.classList.add('error');
-  } finally {
-    auditFormSubmit.disabled = false;
-    auditFormSubmit.textContent = 'Submit Request';
+    if (auditFormStatus) {
+      auditFormStatus.textContent = '';
+      auditFormStatus.className = 'audit-form-status';
+    }
+
+    try {
+      const response = await fetch(AUDIT_FORM_ENDPOINT, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) throw new Error('Submission failed');
+
+      if (auditFormStatus) {
+        auditFormStatus.textContent = "Thanks! We've received your request and will reach out shortly.";
+        auditFormStatus.classList.add('success');
+      }
+      auditForm.reset();
+      setTimeout(closeAuditModal, 2200);
+    } catch (err) {
+      if (auditFormStatus) {
+        auditFormStatus.textContent = 'Something went wrong. Please try again or email us at contact@kivokora.com.';
+        auditFormStatus.classList.add('error');
+      }
+    } finally {
+      if (auditFormSubmit) {
+        auditFormSubmit.disabled = false;
+        auditFormSubmit.textContent = 'Submit Request';
+      }
+    }
+  });
+}
+
+/* ============================================================
+   SMART FREE AUDIT POPUP
+   Auto appears once per session after 5 seconds
+   ============================================================ */
+function createAuditPopup() {
+  if (document.querySelector('.audit-smart-popup')) return;
+
+  const popup = document.createElement('aside');
+  popup.className = 'audit-smart-popup';
+  popup.setAttribute('aria-label', 'Free Growth Audit');
+  popup.innerHTML = `
+    <div class="audit-smart-popup-inner">
+      <div class="audit-popup-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <div class="audit-popup-copy">
+        <strong>Want a clearer growth plan?</strong>
+        <span>Get a free Kivokora Growth Audit — no sales pitch, just practical next steps for your brand.</span>
+      </div>
+      <div class="audit-popup-actions">
+        <button type="button" class="btn btn-primary audit-popup-cta open-audit-form">Get Free Audit</button>
+        <button type="button" class="audit-popup-close" aria-label="Close">×</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(popup);
+
+  popup.querySelector('.audit-popup-close')?.addEventListener('click', () => {
+    popup.classList.remove('show');
+    sessionStorage.setItem('kivokoraAuditPopupClosed', '1');
+  });
+
+  if (!sessionStorage.getItem('kivokoraAuditPopupClosed')) {
+    setTimeout(() => popup.classList.add('show'), 5000);
   }
-});
+}
+
+createAuditPopup();
+
+/* ---------- Glass spotlight ---------- */
+if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  document.querySelectorAll('.glass-card, .usp-card, .service-card, .result-card, .about-plan, .faq-item, .compare-col, .final-cta').forEach(card => {
+    card.addEventListener('pointermove', (e) => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      card.style.setProperty('--my', `${e.clientY - r.top}px`);
+    });
+  });
+}
