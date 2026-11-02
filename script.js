@@ -14,7 +14,8 @@ document.body.appendChild(progressBar);
 
 /* ---------- Nav scroll state + hero depth + progress (rAF-throttled) ---------- */
 const nav = document.getElementById('nav');
-const heroInner = document.querySelector('.hero-inner, .page-hero-inner');
+// the hero "tip back" effect is desktop-only; phones keep the hero still
+const heroInner = finePointer ? document.querySelector('.hero-inner, .page-hero-inner') : null;
 let scrollTicking = false;
 function onScrollFrame() {
   const y = window.scrollY;

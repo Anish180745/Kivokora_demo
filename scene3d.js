@@ -100,9 +100,13 @@ function init() {
   }
   document.documentElement.classList.add('has-3d');
 
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
+  // size from the canvas box (100lvh on phones) so the URL bar never resizes the scene
+  const viewW = () => canvas.clientWidth || window.innerWidth;
+  const viewH = () => canvas.clientHeight || window.innerHeight;
+
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.5);
   renderer.setPixelRatio(pixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.setSize(viewW(), viewH(), false);
   renderer.setClearColor(0x050403, 1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -110,7 +114,7 @@ function init() {
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x050403, 0.045);
 
-  const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 120);
+  const camera = new THREE.PerspectiveCamera(42, viewW() / viewH(), 0.1, 120);
   camera.position.set(0, 0, 9);
 
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -138,7 +142,9 @@ function init() {
     uColorA: { value: new THREE.Color(0x1a0600) },
     uColorB: { value: new THREE.Color(0xff5b1f) },
     uColorC: { value: new THREE.Color(0xffd2b0) },
-    uBoost: { value: isMobile ? 1.3 : 1.0 }
+    uBoost: { value: isMobile ? 0.9 : 1.0 },
+    // phones: lean on the smooth sphere normal so the lower-poly core never looks faceted
+    uFacet: { value: isMobile ? 0.25 : 1.0 }
   };
   const coreMat = new THREE.ShaderMaterial({
     uniforms: coreUniforms,
@@ -147,6 +153,7 @@ function init() {
       uniform float uTime;
       uniform float uAmp;
       varying vec3 vView;
+      varying vec3 vNormal;
       varying float vDisp;
       ${NOISE}
       void main(){
@@ -155,6 +162,7 @@ function init() {
                 + snoise(p * 2.4 - vec3(uTime * 0.3)) * 0.07;
         n *= uAmp;
         vDisp = n;
+        vNormal = normalize(normalMatrix * normal);
         vec4 mv = modelViewMatrix * vec4(p + normal * n, 1.0);
         vView = mv.xyz;
         gl_Position = projectionMatrix * mv;
@@ -165,10 +173,15 @@ function init() {
       uniform vec3 uColorC;
       uniform float uTime;
       uniform float uBoost;
+      uniform float uFacet;
       varying vec3 vView;
+      varying vec3 vNormal;
       varying float vDisp;
       void main(){
-        vec3 N = normalize(cross(dFdx(vView), dFdy(vView)));
+        vec3 flatN = normalize(cross(dFdx(vView), dFdy(vView)));
+        vec3 smoothN = normalize(vNormal);
+        if (dot(flatN, smoothN) < 0.0) flatN = -flatN;
+        vec3 N = normalize(mix(smoothN, flatN, uFacet));
         vec3 V = normalize(-vView);
         float fres = pow(1.0 - abs(dot(N, V)), 2.2);
         float heat = smoothstep(-0.25, 0.3, vDisp);
@@ -182,7 +195,7 @@ function init() {
         #include <colorspace_fragment>
       }`
   });
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, isMobile ? 24 : 48), coreMat);
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, isMobile ? 28 : 48), coreMat);
   heroGroup.add(core);
 
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -223,7 +236,7 @@ function init() {
 
   if (isHome) {
     heroGroup.position.set(0, 0.1, 0);
-    heroGroup.scale.setScalar(isMobile ? 0.72 : 1);
+    heroGroup.scale.setScalar(isMobile ? 0.62 : 1);
   } else {
     heroGroup.position.set(0, 0.4, -2.5);
     heroGroup.scale.setScalar(isMobile ? 0.55 : 0.68);
@@ -247,7 +260,7 @@ function init() {
     new THREE.MeshPhysicalMaterial({ color: 0xffb27a, metalness: 0.7, roughness: 0.22, clearcoat: 1, iridescence: 0.6, iridescenceIOR: 1.6 })
   ];
   const shapes = [];
-  const shapeCount = isMobile ? 10 : 18;
+  const shapeCount = isMobile ? 6 : 18;
   for (let i = 0; i < shapeCount; i++) {
     const mesh = new THREE.Mesh(geos[i % geos.length], mats[(i * 7 + 3) % mats.length]);
     const side = i % 2 ? 1 : -1;
@@ -269,7 +282,7 @@ function init() {
 
   /* ---------- Particle field ---------- */
   const P_SPAN = 60;
-  const count = isMobile ? 1400 : 4200;
+  const count = isMobile ? 600 : 4200;
   const pos = new Float32Array(count * 3);
   const scales = new Float32Array(count);
   const seeds = new Float32Array(count);
@@ -360,13 +373,20 @@ function init() {
   }, { passive: true });
 
   let resizeTimer;
+  let lastW = viewW();
+  let lastH = viewH();
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const w = viewW();
+      const h = viewH();
+      if (w === lastW && h === lastH) return; // phone URL bar show/hide — nothing to do
+      lastW = w;
+      lastH = h;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight, false);
-      if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(w, h, false);
+      if (composer) composer.setSize(w, h);
       measure();
       if (reduceMotion) requestRender();
     }, 120);
@@ -375,11 +395,21 @@ function init() {
   /* ---------- Loop ---------- */
   const clock = new THREE.Clock();
   let firstFrame = true;
+  // phones render at ~30fps: smoother overall and far easier on the battery
+  const minFrame = isMobile ? 1 / 30 : 0;
+  let lastTick = 0;
 
-  function frame() {
+  function frame(now) {
+    if (minFrame && !reduceMotion && now !== undefined) {
+      if ((now - lastTick) / 1000 < minFrame - 0.002) {
+        requestAnimationFrame(frame);
+        return;
+      }
+      lastTick = now;
+    }
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
-    const ease = reduceMotion ? 1 : 0.08;
+    const ease = reduceMotion ? 1 : isMobile ? 0.16 : 0.08;
 
     state.cmx += (state.mx - state.cmx) * 0.05;
     state.cmy += (state.my - state.cmy) * 0.05;

@@ -1053,3 +1053,45 @@ section.reveal:not(.is-visible){transform:translate3d(0,46px,0) scale(.98);}
 }
 /* 3D transforms must never widen the page on phones */
 section,.footer{overflow-x:clip;}
+
+/* ============================================================
+   PHONES & TABLETS — calm, light, jank-free
+   Blur, looping effects and 3D reveals are what make phones stutter,
+   so here the look stays but the heavy work is switched off.
+   ============================================================ */
+@media (max-width:760px), (pointer:coarse){
+  /* large viewport height: the URL bar showing/hiding no longer stretches the scene */
+  #scene3d{height:100lvh;}
+  body::after{display:none;}
+
+  /* no live blur — solid tinted glass instead */
+  :root{--glass-bg:linear-gradient(155deg,rgba(38,29,24,.93),rgba(18,13,11,.92));}
+  .usp-card::before,.service-card::before,.faq-item,.deliverable-box,.usp-strip,.compare-col-bad,.chat-panel,
+  .about-stats,.result-card,.plan-tabs span,.process-step-visual,.service-detail-image-card,.btn-ghost,
+  .footer,.subnav,.nav.scrolled .nav-inner,.orbit-mini i{
+    backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+  }
+  .nav.scrolled .nav-inner{background:rgba(14,10,8,.95);}
+  .subnav{background:rgba(5,4,3,.96);}
+  .footer{background:#0a0806;}
+  .btn-ghost{background:rgba(30,23,19,.85);}
+
+  /* stop the always-running decoration loops */
+  .text-flame,.tag-card,.fan-card,.process-step-visual,.service-detail-image-card,.final-cta::before{animation:none !important;}
+  .btn-primary::after{display:none;}
+
+  /* lighter text depth (stacked filters repaint on every scroll frame) */
+  .text-flame{filter:none;background-position:30% 50%;}
+  .hero-h1 .text-flame,.page-hero-inner h1 .text-flame{filter:drop-shadow(0 2px 0 #7a2400);}
+  h1,h2{text-shadow:0 2px 0 #241b16,0 6px 14px rgba(0,0,0,.5);}
+  .hero-h1{text-shadow:0 2px 0 #ad9e91,0 4px 0 #6f6157,0 10px 20px rgba(0,0,0,.55);}
+  .growth-stat{text-shadow:0 2px 0 #ff7a3d,0 4px 0 #a83400,0 12px 24px rgba(0,0,0,.5);}
+
+  /* short, flat fade-up instead of the 3D flip */
+  .reveal,section.reveal:not(.is-visible){transform:translate3d(0,24px,0);transition:opacity .6s ease-out,transform .6s ease-out;}
+  .reveal.is-visible,section.reveal.is-visible{transform:none;}
+  .hero-inner,.page-hero-inner{transform:none !important;opacity:1 !important;will-change:auto;}
+  .compare-col-bad.reveal.is-visible,.compare-col-good.reveal.is-visible{transform:none;}
+  .fan-card{transform:rotate(var(--r));}
+  .tag-row{perspective:none;}
+}
