@@ -757,7 +757,7 @@ section{position:relative;}
 }
 
 /* WebGL canvas sits behind every section */
-#scene3d{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;display:block;pointer-events:none;opacity:0;transition:opacity 1.6s var(--ease);}
+#scene3d{position:fixed;inset:0;width:100%;height:100vh;contain:strict;z-index:-1;display:block;pointer-events:none;opacity:0;transition:opacity 1.6s var(--ease);}
 #scene3d.ready{opacity:1;}
 
 /* film grain */
@@ -784,7 +784,7 @@ h1,h2{text-shadow:0 1px 0 #3a2c24,0 2px 0 #2e231d,0 3px 0 #241b16,0 4px 0 #1a131
   text-shadow:none;
   background:linear-gradient(110deg,#ffc39a 0%,#ff7a3d 22%,#ff5b1f 45%,#c93e00 62%,#ff7a3d 80%,#ffc39a 100%);
   background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:flameShift 7s ease-in-out infinite alternate;
+  background-position:30% 50%;
   filter:drop-shadow(0 1px 0 #b73800) drop-shadow(0 1px 0 #922c00) drop-shadow(0 1px 0 #6e2100) drop-shadow(0 10px 18px rgba(255,91,31,.35));
 }
 @keyframes flameShift{from{background-position:0% 50%;}to{background-position:100% 50%;}}
@@ -935,11 +935,12 @@ section.reveal:not(.is-visible){transform:translate3d(0,46px,0) scale(.98);}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.18),0 5px 0 #7a2400,0 18px 40px -12px var(--flame-glow);
 }
 .btn-primary::after{
-  content:'';position:absolute;top:0;bottom:0;left:-75%;width:50%;pointer-events:none;
-  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-22deg);
+  content:'';position:absolute;top:0;bottom:0;left:0;width:50%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-150%) skewX(-22deg);
   animation:btnShine 5s var(--ease) infinite;
 }
-@keyframes btnShine{0%,60%{left:-75%;}100%{left:130%;}}
+/* transform instead of `left` — no layout work every frame */
+@keyframes btnShine{0%,60%{transform:translateX(-150%) skewX(-22deg);}100%{transform:translateX(260%) skewX(-22deg);}}
 .btn-primary:active{translate:0 4px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 0 #7a2400,0 10px 20px -10px var(--flame-glow);}
 .btn-ghost{
   background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.02));
@@ -1031,7 +1032,7 @@ section.reveal:not(.is-visible){transform:translate3d(0,46px,0) scale(.98);}
 /* ---------- Cursor light + scroll progress ---------- */
 .cursor-glow{
   position:fixed;left:0;top:0;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;
-  pointer-events:none;z-index:2;opacity:0;transition:opacity .6s;will-change:transform;mix-blend-mode:screen;
+  pointer-events:none;z-index:2;opacity:0;transition:opacity .6s;will-change:transform;
   background:radial-gradient(circle,rgba(255,91,31,.13),transparent 60%);
 }
 .cursor-glow.on{opacity:1;}
@@ -1094,4 +1095,49 @@ section,.footer{overflow-x:clip;}
   .compare-col-bad.reveal.is-visible,.compare-col-good.reveal.is-visible{transform:none;}
   .fan-card{transform:rotate(var(--r));}
   .tag-row{perspective:none;}
+}
+
+/* ============================================================
+   PERFORMANCE PASS (all devices)
+   The WebGL background changes every frame, so every element with
+   backdrop-filter had to re-blur what's behind it 60x a second —
+   that was the main cause of the lag. Glass is now a rich tinted
+   fill instead of a live blur: same look, a fraction of the work.
+   ============================================================ */
+:root{
+  --glass-blur:none;
+  --glass-bg:linear-gradient(155deg,rgba(40,30,25,.84),rgba(16,12,10,.78));
+}
+.hero-bubble,.orbit-mini i,.btn-ghost,.footer,.subnav,.audit-modal-overlay,
+.usp-card::before,.service-card::before,.faq-item,.deliverable-box,.usp-strip,.compare-col-bad,.chat-panel,
+.about-stats,.result-card,.plan-tabs span,.process-step-visual,.service-detail-image-card{
+  backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+}
+.btn-ghost{background:linear-gradient(160deg,rgba(40,30,25,.8),rgba(20,15,12,.7));}
+.orbit-mini i{background:rgba(40,30,25,.85);}
+.subnav{background:rgba(5,4,3,.94);}
+.footer{background:linear-gradient(180deg,rgba(10,8,6,.82),rgba(5,4,3,.97));}
+.audit-modal-overlay{background:rgba(0,0,0,.86);}
+/* the one small blur we keep: the floating nav pill (tiny area, desktop only) */
+.nav.scrolled .nav-inner{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);background:rgba(14,10,8,.78);}
+
+/* animations that are off-screen or paused don't need their own layers */
+.tilt-card{will-change:auto;}
+.tilt-card:hover{will-change:transform;}
+
+@media (max-width:760px), (pointer:coarse){
+  /* too many GPU layers made phones show blank/torn tiles while scrolling */
+  .tilt-card,.usp-card,.service-card{will-change:auto !important;transform-style:flat !important;}
+  .usp-card>*:not(.tilt-glare),.service-card>*:not(.tilt-glare){transform:none !important;}
+  .nav.scrolled .nav-inner{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;background:rgba(14,10,8,.96);}
+  .hero-bubble{animation:none !important;box-shadow:none;}
+  .orbit-mini i{animation-duration:20s;}
+  .chat-pulse{animation:none;}
+  .result-card::before{filter:none;opacity:.1;}
+  .usp-icon::after,.service-icon::after{filter:none;opacity:.6;}
+  .cursor-glow{display:none;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition-duration:.01ms !important;}
 }

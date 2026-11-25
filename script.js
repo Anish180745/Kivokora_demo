@@ -215,15 +215,18 @@ if (subLinks.length) {
 /* ---------- Hero bubble parallax ---------- */
 const parallaxEls = document.querySelectorAll('[data-parallax]');
 if (parallaxEls.length && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-  window.addEventListener('mousemove', (e) => {
-    const xRatio = (e.clientX / window.innerWidth) - 0.5;
-    const yRatio = (e.clientY / window.innerHeight) - 0.5;
+  let pxRatio = 0, pyRatio = 0, pxTicking = false;
+  const applyParallax = () => {
     parallaxEls.forEach(el => {
       const strength = parseFloat(el.dataset.parallax) || 0.3;
-      const moveX = xRatio * 40 * strength;
-      const moveY = yRatio * 40 * strength;
-      el.style.transform = `translate(${moveX}px, ${moveY}px)`;
+      el.style.transform = `translate3d(${pxRatio * 40 * strength}px, ${pyRatio * 40 * strength}px, 0)`;
     });
+    pxTicking = false;
+  };
+  window.addEventListener('mousemove', (e) => {
+    pxRatio = (e.clientX / window.innerWidth) - 0.5;
+    pyRatio = (e.clientY / window.innerHeight) - 0.5;
+    if (!pxTicking) { pxTicking = true; requestAnimationFrame(applyParallax); }
   }, { passive: true });
 }
 

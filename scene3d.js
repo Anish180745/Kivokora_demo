@@ -12,6 +12,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isMobile = window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
+// weak laptops / tablets get the same light scene as phones
+const lowPower = isMobile || (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
 const isHome = !!document.querySelector('.hero');
 
 function supportsWebGL() {
@@ -93,7 +95,13 @@ function init() {
 
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: false,
+      stencil: false,
+      powerPreference: 'high-performance'
+    });
   } catch (e) {
     canvas.remove();
     return;
@@ -104,7 +112,13 @@ function init() {
   const viewW = () => canvas.clientWidth || window.innerWidth;
   const viewH = () => canvas.clientHeight || window.innerHeight;
 
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.5);
+  /* ---------- Resolution: sharp, but adaptive ----------
+     Start crisp, then the governor below lowers it only if the device can't keep up. */
+  const deviceDPR = window.devicePixelRatio || 1;
+  const maxDPR = Math.min(deviceDPR, isMobile ? 1.75 : lowPower ? 1.25 : 1.5);
+  const minDPR = Math.min(deviceDPR, isMobile ? 1 : 0.85);
+  let pixelRatio = maxDPR;
+
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(viewW(), viewH(), false);
   renderer.setClearColor(0x050403, 1);
@@ -119,6 +133,7 @@ function init() {
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+  pmrem.dispose();
 
   /* ---------- Lights (follow the camera down the page) ---------- */
   const lightRig = new THREE.Group();
@@ -142,9 +157,8 @@ function init() {
     uColorA: { value: new THREE.Color(0x1a0600) },
     uColorB: { value: new THREE.Color(0xff5b1f) },
     uColorC: { value: new THREE.Color(0xffd2b0) },
-    uBoost: { value: isMobile ? 0.9 : 1.0 },
-    // phones: lean on the smooth sphere normal so the lower-poly core never looks faceted
-    uFacet: { value: isMobile ? 0.25 : 1.0 }
+    uBoost: { value: isMobile ? 0.95 : 1.0 },
+    uFacet: { value: isMobile ? 0.3 : 0.85 }
   };
   const coreMat = new THREE.ShaderMaterial({
     uniforms: coreUniforms,
@@ -195,7 +209,8 @@ function init() {
         #include <colorspace_fragment>
       }`
   });
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, isMobile ? 28 : 48), coreMat);
+  // was detail 48 (~140k vertices, each running two noise calls) — 24 looks the same at a fraction of the cost
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, isMobile ? 14 : lowPower ? 18 : 24), coreMat);
   heroGroup.add(core);
 
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -203,28 +218,38 @@ function init() {
     blending: THREE.AdditiveBlending,
     transparent: true,
     depthWrite: false,
-    opacity: isHome ? 0.3 : 0.22
+    // a bit brighter where there is no bloom pass, so the glow still reads
+    opacity: (isHome ? 0.3 : 0.22) * (lowPower ? 1.35 : 1)
   }));
   halo.scale.set(10, 10, 1);
   halo.position.z = -1.5;
   heroGroup.add(halo);
 
+  // Rings are real lines now: hair-thin tori shimmered and looked broken, especially on phones
   const ringGroup = new THREE.Group();
   const moons = [];
+  const moonGeo = new THREE.SphereGeometry(1, 16, 12);
   [[2.5, 1.15, 0.2], [3.1, -0.9, 0.6], [3.8, 0.4, -0.5]].forEach(([r, rx, ry], i) => {
     const ringColor = new THREE.Color(i === 1 ? 0xffb27a : 0xff5b1f).multiplyScalar(1.8);
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(r, 0.006 + i * 0.002, 6, 256),
-      new THREE.MeshBasicMaterial({ color: ringColor, transparent: true, opacity: 0.55 - i * 0.12 })
+    const pts = [];
+    const SEG = 160;
+    for (let s = 0; s < SEG; s++) {
+      const a = (s / SEG) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0));
+    }
+    const ring = new THREE.LineLoop(
+      new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color: ringColor, transparent: true, opacity: 0.6 - i * 0.12, depthWrite: false })
     );
     ring.rotation.set(rx, ry, 0);
     const pivot = new THREE.Group();
     pivot.rotation.copy(ring.rotation);
     const spinner = new THREE.Group();
     const moon = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06 + i * 0.02, 20, 20),
+      moonGeo,
       new THREE.MeshBasicMaterial({ color: new THREE.Color(0xffd2b0).multiplyScalar(2.5) })
     );
+    moon.scale.setScalar(0.06 + i * 0.02);
     moon.position.x = r;
     spinner.add(moon);
     spinner.rotation.z = i * 2.1;
@@ -246,21 +271,22 @@ function init() {
   const SHAPE_SPAN = 36;
   const geos = [
     new THREE.OctahedronGeometry(0.5, 0),
-    new THREE.TorusKnotGeometry(0.34, 0.11, 160, 20),
+    new THREE.TorusKnotGeometry(0.34, 0.11, 96, 12),
     new THREE.IcosahedronGeometry(0.46, 0),
-    new THREE.TorusGeometry(0.4, 0.14, 32, 72),
+    new THREE.TorusGeometry(0.4, 0.14, 16, 48),
     new THREE.DodecahedronGeometry(0.42, 0),
-    new THREE.CapsuleGeometry(0.2, 0.5, 8, 20),
-    new THREE.SphereGeometry(0.36, 40, 40)
+    new THREE.CapsuleGeometry(0.2, 0.5, 6, 14),
+    new THREE.SphereGeometry(0.36, 28, 20)
   ];
+  // Standard instead of Physical: clearcoat + iridescence doubled the lighting cost per pixel
   const mats = [
-    new THREE.MeshPhysicalMaterial({ color: 0xff5b1f, metalness: 0.25, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08, emissive: 0x3a0d00 }),
-    new THREE.MeshPhysicalMaterial({ color: 0x2a1f1a, metalness: 1, roughness: 0.2, clearcoat: 0.6 }),
-    new THREE.MeshPhysicalMaterial({ color: 0xfff1e4, metalness: 0, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.15 }),
-    new THREE.MeshPhysicalMaterial({ color: 0xffb27a, metalness: 0.7, roughness: 0.22, clearcoat: 1, iridescence: 0.6, iridescenceIOR: 1.6 })
+    new THREE.MeshStandardMaterial({ color: 0xff5b1f, metalness: 0.25, roughness: 0.15, emissive: 0x3a0d00 }),
+    new THREE.MeshStandardMaterial({ color: 0x2a1f1a, metalness: 1, roughness: 0.2 }),
+    new THREE.MeshStandardMaterial({ color: 0xfff1e4, metalness: 0, roughness: 0.28 }),
+    new THREE.MeshStandardMaterial({ color: 0xffb27a, metalness: 0.75, roughness: 0.2 })
   ];
   const shapes = [];
-  const shapeCount = isMobile ? 6 : 18;
+  const shapeCount = isMobile ? 6 : lowPower ? 10 : 14;
   for (let i = 0; i < shapeCount; i++) {
     const mesh = new THREE.Mesh(geos[i % geos.length], mats[(i * 7 + 3) % mats.length]);
     const side = i % 2 ? 1 : -1;
@@ -282,7 +308,7 @@ function init() {
 
   /* ---------- Particle field ---------- */
   const P_SPAN = 60;
-  const count = isMobile ? 600 : 4200;
+  const count = isMobile ? 500 : lowPower ? 1200 : 2200;
   const pos = new Float32Array(count * 3);
   const scales = new Float32Array(count);
   const seeds = new Float32Array(count);
@@ -324,7 +350,8 @@ function init() {
         float rel = mod(p.y - uCamY + uSpan * 0.5, uSpan) - uSpan * 0.5;
         p.y = uCamY + rel;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_PointSize = aScale * uSize / -mv.z;
+        // clamp so near particles never become huge overdraw blobs
+        gl_PointSize = min(aScale * uSize / -mv.z, 48.0);
         vAlpha = 0.35 + 0.65 * (0.5 + 0.5 * sin(uTime * 1.5 + aSeed * 40.0));
         vMix = aSeed;
         gl_Position = projectionMatrix * mv;
@@ -334,23 +361,84 @@ function init() {
       varying float vMix;
       void main(){
         float d = length(gl_PointCoord - 0.5);
+        if (d > 0.5) discard;
         float a = pow(smoothstep(0.5, 0.0, d), 1.8);
         vec3 col = mix(vec3(1.0, 0.36, 0.12), vec3(1.0, 0.85, 0.7), step(0.72, vMix));
         gl_FragColor = vec4(col * 1.4, a * vAlpha);
         #include <colorspace_fragment>
       }`
   }));
+  points.frustumCulled = false;
   scene.add(points);
 
-  /* ---------- Post-processing (bloom on desktop) ---------- */
+  /* ---------- Post-processing: half-resolution bloom on capable desktops only ---------- */
   let composer = null;
-  if (!isMobile) {
+  let bloomPass = null;
+  function sizeBloom() {
+    // bloom is blurry by nature — computing it at half size is ~4x cheaper and looks identical
+    if (bloomPass) bloomPass.setSize(Math.round(viewW() * pixelRatio * 0.5), Math.round(viewH() * pixelRatio * 0.5));
+  }
+  if (!lowPower) {
     composer = new EffectComposer(renderer);
     composer.setPixelRatio(pixelRatio);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(viewW(), viewH());
     composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.65, 0.28));
+    bloomPass = new UnrealBloomPass(new THREE.Vector2(viewW() * 0.5, viewH() * 0.5), 0.55, 0.65, 0.28);
+    composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
+    sizeBloom();
+  }
+  function dropBloom() {
+    if (!composer) return;
+    composer.dispose();
+    composer = null;
+    bloomPass = null;
+    halo.material.opacity *= 1.35;
+  }
+
+  function applySize() {
+    const w = viewW();
+    const h = viewH();
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(w, h, false);
+    pUniforms.uSize.value = 60 * pixelRatio;
+    if (composer) {
+      composer.setPixelRatio(pixelRatio);
+      composer.setSize(w, h);
+      sizeBloom();
+    }
+  }
+
+  /* ---------- Performance governor ----------
+     Watches real frame times. If the device struggles, it first drops bloom,
+     then lowers render resolution step by step — so every device gets smooth motion. */
+  const gov = { acc: 0, frames: 0, slowStreak: 0, warm: 0, settled: false };
+  function govern(dtMs) {
+    if (gov.settled) return;
+    gov.warm += dtMs;
+    if (gov.warm < 1500) return; // ignore start-up hitches (shader compile, fonts, images)
+    gov.acc += dtMs;
+    gov.frames++;
+    if (gov.acc < 1000) return;
+    const avg = gov.acc / gov.frames;
+    gov.acc = 0;
+    gov.frames = 0;
+    if (avg > 20) { // below ~50fps
+      gov.slowStreak++;
+      if (gov.slowStreak >= 1) {
+        gov.slowStreak = 0;
+        if (composer) dropBloom();
+        else if (pixelRatio > minDPR + 0.01) {
+          pixelRatio = Math.max(minDPR, +(pixelRatio - 0.25).toFixed(2));
+          applySize();
+        } else gov.settled = true;
+      }
+    } else {
+      gov.slowStreak = 0;
+      if (gov.warm > 12000) gov.settled = true; // stable for a while — stop measuring
+    }
   }
 
   /* ---------- Input ---------- */
@@ -364,6 +452,7 @@ function init() {
   state.camY = -state.scrollY * worldPerPx;
 
   window.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return; // touch-drags shouldn't swing the camera
     state.mx = (e.clientX / window.innerWidth) * 2 - 1;
     state.my = (e.clientY / window.innerHeight) * 2 - 1;
   }, { passive: true });
@@ -383,40 +472,37 @@ function init() {
       if (w === lastW && h === lastH) return; // phone URL bar show/hide — nothing to do
       lastW = w;
       lastH = h;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h, false);
-      if (composer) composer.setSize(w, h);
+      applySize();
       measure();
       if (reduceMotion) requestRender();
-    }, 120);
+    }, 150);
   });
 
   /* ---------- Loop ---------- */
   const clock = new THREE.Clock();
   let firstFrame = true;
-  // phones render at ~30fps: smoother overall and far easier on the battery
-  const minFrame = isMobile ? 1 / 30 : 0;
-  let lastTick = 0;
+  let running = true;
+  let rafId = 0;
 
-  function frame(now) {
-    if (minFrame && !reduceMotion && now !== undefined) {
-      if ((now - lastTick) / 1000 < minFrame - 0.002) {
-        requestAnimationFrame(frame);
-        return;
-      }
-      lastTick = now;
-    }
-    const dt = Math.min(clock.getDelta(), 0.05);
+  // frame-rate independent smoothing: same feel at 30, 60 or 120 Hz
+  const damp = (k, dt) => 1 - Math.exp(-k * dt);
+
+  function frame() {
+    if (!running) return;
+    const rawDt = clock.getDelta();
+    const dt = Math.min(rawDt, 0.05);
     const t = clock.elapsedTime;
-    const ease = reduceMotion ? 1 : isMobile ? 0.16 : 0.08;
+    if (!reduceMotion && !firstFrame) govern(rawDt * 1000);
 
-    state.cmx += (state.mx - state.cmx) * 0.05;
-    state.cmy += (state.my - state.cmy) * 0.05;
+    const camEase = reduceMotion ? 1 : damp(isMobile ? 14 : 6, dt);
+    const mouseEase = damp(3, dt);
+
+    state.cmx += (state.mx - state.cmx) * mouseEase;
+    state.cmy += (state.my - state.cmy) * mouseEase;
     const v = state.scrollY - state.last;
     state.last = state.scrollY;
-    state.vel += (v - state.vel) * 0.1;
-    state.camY += (-state.scrollY * worldPerPx - state.camY) * ease;
+    state.vel += (v - state.vel) * damp(6, dt);
+    state.camY += (-state.scrollY * worldPerPx - state.camY) * camEase;
 
     camera.position.x = state.cmx * 0.7;
     camera.position.y = state.camY - state.cmy * 0.45;
@@ -424,39 +510,43 @@ function init() {
     lightRig.position.y = state.camY;
 
     // core reacts to the cursor approaching it and to scroll speed
-    const d = Math.hypot(state.cmx, state.cmy * 0.8);
-    state.hover += ((1 - Math.min(d * 1.4, 1)) - state.hover) * 0.05;
-    coreUniforms.uTime.value = t;
-    coreUniforms.uAmp.value = 0.85 + state.hover * 0.55 + Math.min(Math.abs(state.vel) * 0.01, 0.6);
-    core.rotation.y += dt * (0.12 + Math.min(Math.abs(state.vel) * 0.004, 0.8));
-    core.rotation.x = t * 0.05;
-    ringGroup.rotation.z += dt * 0.05;
-    ringGroup.rotation.x = state.cmy * 0.25;
-    ringGroup.rotation.y = state.cmx * 0.35;
-    moons.forEach((m) => { m.spinner.rotation.z += dt * m.speed; });
-    heroGroup.visible = state.camY > -14;
+    const heroOn = state.camY > -14;
+    heroGroup.visible = heroOn;
+    if (heroOn) {
+      const d = Math.hypot(state.cmx, state.cmy * 0.8);
+      state.hover += ((1 - Math.min(d * 1.4, 1)) - state.hover) * mouseEase;
+      coreUniforms.uTime.value = t;
+      coreUniforms.uAmp.value = 0.85 + state.hover * 0.55 + Math.min(Math.abs(state.vel) * 0.01, 0.6);
+      core.rotation.y += dt * (0.12 + Math.min(Math.abs(state.vel) * 0.004, 0.8));
+      core.rotation.x = t * 0.05;
+      ringGroup.rotation.z += dt * 0.05;
+      ringGroup.rotation.x = state.cmy * 0.25;
+      ringGroup.rotation.y = state.cmx * 0.35;
+      for (let i = 0; i < moons.length; i++) moons[i].spinner.rotation.z += dt * moons[i].speed;
+    }
 
-    shapes.forEach((s) => {
+    for (let i = 0; i < shapes.length; i++) {
+      const s = shapes[i];
       s.mesh.rotation.x += s.rx * dt;
       s.mesh.rotation.y += s.ry * dt;
       const y = s.baseY + Math.sin(t * s.bob + s.phase) * 0.25;
       let rel = y - state.camY;
       rel = (((rel + SHAPE_SPAN / 2) % SHAPE_SPAN) + SHAPE_SPAN) % SHAPE_SPAN - SHAPE_SPAN / 2;
       s.mesh.position.set(s.x + state.cmx * s.depth * 0.3, state.camY + rel, s.z);
-    });
+    }
 
     pUniforms.uTime.value = t;
     pUniforms.uCamY.value = state.camY;
     points.rotation.y = state.cmx * 0.05;
 
-    if (composer) composer.render();
+    if (composer) composer.render(dt);
     else renderer.render(scene, camera);
 
     if (firstFrame) {
       firstFrame = false;
       canvas.classList.add('ready');
     }
-    if (!reduceMotion) requestAnimationFrame(frame);
+    if (!reduceMotion) rafId = requestAnimationFrame(frame);
   }
 
   let pending = false;
@@ -466,7 +556,29 @@ function init() {
     requestAnimationFrame(() => { pending = false; frame(); });
   }
 
-  requestAnimationFrame(frame);
+  // stop all GPU work while the tab is in the background, resume cleanly
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      running = false;
+      cancelAnimationFrame(rafId);
+    } else if (!running) {
+      running = true;
+      clock.getDelta(); // swallow the long pause
+      gov.warm = 0;
+      rafId = requestAnimationFrame(frame);
+    }
+  });
+
+  // phones can drop the GPU context (low memory) — fall back to the plain CSS background instead of a black/torn screen
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    running = false;
+    cancelAnimationFrame(rafId);
+    canvas.style.display = 'none';
+    document.documentElement.classList.remove('has-3d');
+  });
+
+  rafId = requestAnimationFrame(frame);
 }
 
 if (supportsWebGL()) init();
