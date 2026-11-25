@@ -1141,3 +1141,22 @@ section,.footer{overflow-x:clip;}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none !important;transition-duration:.01ms !important;}
 }
+
+/* ============================================================
+   PERF: no backdrop-filter over the live WebGL canvas.
+   The canvas changes every frame, so every blurred element had to
+   re-blur its backdrop every frame — the main cause of scroll lag.
+   Slightly more opaque fills keep the same glassy look.
+   ============================================================ */
+.has-3d{
+  --glass-bg:linear-gradient(155deg,rgba(40,30,25,0.86),rgba(16,12,10,0.80));
+  --glass-blur:none;
+}
+.has-3d *,.has-3d *::before,.has-3d *::after{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}
+.has-3d .nav.scrolled .nav-inner{background:rgba(14,10,8,.92);}
+.has-3d .subnav{background:rgba(5,4,3,.94);}
+.has-3d .footer{background:linear-gradient(180deg,rgba(10,8,6,.88),rgba(5,4,3,.97));}
+.has-3d .btn-ghost{background:linear-gradient(160deg,rgba(40,30,25,.85),rgba(20,15,12,.8));}
+.has-3d .orbit-mini i{background:rgba(60,40,30,.7);}
+/* big blurred blobs → cheap radial gradient */
+.has-3d .result-card::before{filter:none;background:radial-gradient(circle,var(--accent),transparent 70%);opacity:.14;}
