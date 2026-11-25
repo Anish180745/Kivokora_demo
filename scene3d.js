@@ -97,7 +97,8 @@ function init() {
   try {
     renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      // with bloom the scene renders into an offscreen target, so canvas MSAA is pure waste
+      antialias: lowPower,
       alpha: false,
       stencil: false,
       powerPreference: 'high-performance'
@@ -115,8 +116,8 @@ function init() {
   /* ---------- Resolution: sharp, but adaptive ----------
      Start crisp, then the governor below lowers it only if the device can't keep up. */
   const deviceDPR = window.devicePixelRatio || 1;
-  const maxDPR = Math.min(deviceDPR, isMobile ? 1.75 : lowPower ? 1.25 : 1.5);
-  const minDPR = Math.min(deviceDPR, isMobile ? 1 : 0.85);
+  const maxDPR = Math.min(deviceDPR, isMobile ? 1.5 : lowPower ? 1 : 1.25);
+  const minDPR = Math.min(deviceDPR, isMobile ? 0.85 : 0.75);
   let pixelRatio = maxDPR;
 
   renderer.setPixelRatio(pixelRatio);
@@ -425,7 +426,7 @@ function init() {
     const avg = gov.acc / gov.frames;
     gov.acc = 0;
     gov.frames = 0;
-    if (avg > 20) { // below ~50fps
+    if (avg > 22) { // below ~45fps
       gov.slowStreak++;
       if (gov.slowStreak >= 1) {
         gov.slowStreak = 0;
@@ -487,6 +488,20 @@ function init() {
   // frame-rate independent smoothing: same feel at 30, 60 or 120 Hz
   const damp = (k, dt) => 1 - Math.exp(-k * dt);
 
+  // 120/144 Hz screens were rendering the whole scene 2-2.4x more often than needed
+  const MIN_FRAME_MS = 1000 / 61;
+  let lastFrameAt = 0;
+
+  function loop(now) {
+    if (!running) return;
+    rafId = requestAnimationFrame(loop);
+    const elapsed = now - lastFrameAt;
+    if (elapsed < MIN_FRAME_MS) return;
+    // carry the remainder so 144 Hz averages a true 60 fps instead of 48
+    lastFrameAt = elapsed > 100 ? now : now - (elapsed % MIN_FRAME_MS);
+    frame();
+  }
+
   function frame() {
     if (!running) return;
     const rawDt = clock.getDelta();
@@ -546,7 +561,6 @@ function init() {
       firstFrame = false;
       canvas.classList.add('ready');
     }
-    if (!reduceMotion) rafId = requestAnimationFrame(frame);
   }
 
   let pending = false;
@@ -565,7 +579,7 @@ function init() {
       running = true;
       clock.getDelta(); // swallow the long pause
       gov.warm = 0;
-      rafId = requestAnimationFrame(frame);
+      if (!reduceMotion) rafId = requestAnimationFrame(loop);
     }
   });
 
@@ -578,7 +592,8 @@ function init() {
     document.documentElement.classList.remove('has-3d');
   });
 
-  rafId = requestAnimationFrame(frame);
+  if (reduceMotion) requestRender();
+  else rafId = requestAnimationFrame(loop);
 }
 
 if (supportsWebGL()) init();
